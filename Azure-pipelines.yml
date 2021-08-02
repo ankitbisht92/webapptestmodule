@@ -1,0 +1,49 @@
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: vs2017-win2016
+  steps:
+  - checkout: self
+  - task: PowerShell@2
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Write your PowerShell commands here.
+        
+        Write-Host "Install Snyk"
+        
+        npm install -g snyk
+
+        npm install -g snyk-to-html
+  - task: CopyFiles@2
+    displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+    inputs:
+      Contents: >-
+        outputs.tf
+
+        main.tf
+
+        variables.tf
+
+        readme.md
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: PowerShell@2
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Write your PowerShell commands here.
+        
+        Write-Host "Hello World"
+        Write-Host "path " $(build.artifactstagingdirectory)\main.tf
+        
+        snyk auth $(SNYK_TOKEN)
+        
+        snyk iac test $(build.artifactstagingdirectory)\main.tf --severity-threshold=high  --json | snyk-to-html -o results.html
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
+...
